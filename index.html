@@ -760,6 +760,51 @@ function render() {
   saveState();
 }
 
+   // Helper
+  const $ = (id) => document.getElementById(id);
+
+  function render() {
+    // Mus
+    $("pointsA").textContent = state.mus.pointsA;
+    $("pointsB").textContent = state.mus.pointsB;
+    $("gamesInVacaA").textContent = state.mus.gamesInVacaA;
+    $("gamesInVacaB").textContent = state.mus.gamesInVacaB;
+    $("vacasA").textContent = state.mus.vacasA;
+    $("vacasB").textContent = state.mus.vacasB;
+
+    // Tenis
+    $("tennisGamesA").textContent = state.tennis.gamesA;
+    $("tennisGamesB").textContent = state.tennis.gamesB;
+    $("setsA").textContent = state.match.setsA;
+    $("setsB").textContent = state.match.setsB;
+
+    $("setIndex").textContent = (state.sets.length + 1);
+    $("modeLabel").textContent = state.tennis.inTiebreak ? "Tiebreak" : "Normal";
+
+    // Historial
+    const ul = $("historyList");
+    ul.innerHTML = "";
+    state.history.forEach((h) => {
+      const li = document.createElement("li");
+      li.innerHTML = `<span><strong>${escapeHTML(h.msg)}</strong></span><span class="mono">${escapeHTML(h.stamp || h.time || "")}</span>`;
+      ul.appendChild(li);
+    });
+
+    saveState();
+  }
+
+  // Muy importante: arranca cuando el DOM esté listo
+  document.addEventListener("DOMContentLoaded", () => {
+    render();
+  });
+
+  // Service Worker (PWA)
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./service-worker.js");
+    });
+  }
+    
 /* =========================================================
    SERVICE WORKER (PWA)
    ========================================================= */
