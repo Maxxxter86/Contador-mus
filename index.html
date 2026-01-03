@@ -1,0 +1,639 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Marcador Mus (Puntos→Vacas→Tenis)</title>
+  <style>
+    :root{
+      --bg:#0b1220; --card:#121b2f; --muted:#a7b0c0; --text:#eef2ff;
+      --accent:#6ee7b7; --danger:#fb7185; --warn:#fbbf24;
+      --border:rgba(255,255,255,.10); --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background:
+        radial-gradient(1200px 700px at 20% 0%, rgba(110,231,183,.12), transparent 55%),
+        radial-gradient(900px 600px at 90% 20%, rgba(59,130,246,.12), transparent 55%),
+        var(--bg);
+      color:var(--text);
+      padding:16px;
+    }
+    .wrap{max-width:1100px;margin:0 auto}
+    header{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;margin:8px 0 14px}
+    h1{font-size:20px;margin:0;letter-spacing:.2px}
+    .sub{color:var(--muted);font-size:13px;margin-top:4px}
+    .grid{display:grid;grid-template-columns:1fr;gap:12px}
+    @media (min-width: 940px){.grid{grid-template-columns: 1.3fr .7fr}}
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .card .hd{
+      padding:14px 14px 10px;
+      border-bottom:1px solid var(--border);
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      flex-wrap:wrap;
+    }
+    .card .bd{padding:14px}
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:6px 10px; border:1px solid var(--border); border-radius:999px;
+      color:var(--muted); font-size:12px; background: rgba(0,0,0,.18);
+    }
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
+    .meta{display:flex; flex-wrap:wrap; gap:10px; align-items:center}
+    .meta .k{
+      color:var(--muted); font-size:12px;
+      border:1px solid var(--border); background: rgba(0,0,0,.18);
+      padding:6px 10px; border-radius:999px;
+    }
+
+    .teams{display:grid;grid-template-columns:1fr;gap:10px}
+    @media (min-width: 560px){.teams{grid-template-columns:1fr 1fr}}
+
+    .team{
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:12px;
+      background: rgba(0,0,0,.18);
+    }
+    .teamName{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:10px}
+    .teamName .name{font-weight:800;font-size:16px}
+    .teamName .sets{font-size:13px;color:var(--muted)}
+    .scoreGrid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+      align-items:stretch;
+    }
+    .big{
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:12px;
+      background: rgba(255,255,255,.04);
+      display:flex; flex-direction:column; justify-content:center;
+      min-height:88px;
+    }
+    .label{color:var(--muted);font-size:12px}
+    .value{font-size:40px;font-weight:900;line-height:1.0;margin-top:6px;letter-spacing:.3px}
+    .valueSmall{font-size:22px;font-weight:800;margin-top:8px}
+    .btnRow{display:grid;grid-template-columns: 1fr 1fr; gap:10px; margin-top:10px}
+    .btnRow3{display:grid;grid-template-columns: repeat(3, 1fr); gap:10px; margin-top:10px}
+    button{
+      appearance:none; border:1px solid var(--border);
+      background: rgba(255,255,255,.06);
+      color:var(--text);
+      border-radius:14px; padding:12px;
+      font-size:15px; font-weight:800; cursor:pointer;
+      transition: transform .05s ease, background .2s ease, border-color .2s ease;
+      user-select:none;
+    }
+    button:active{transform:scale(.98)}
+    button.primary{background: rgba(110,231,183,.15); border-color: rgba(110,231,183,.35)}
+    button.ghost{background: rgba(0,0,0,.18)}
+    button.danger{background: rgba(251,113,133,.14); border-color: rgba(251,113,133,.35)}
+    button.warn{background: rgba(251,191,36,.12); border-color: rgba(251,191,36,.35)}
+    .controls{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+    .controls button{flex:1; min-width:160px}
+
+    .history{
+      max-height: 360px; overflow:auto;
+      border:1px solid var(--border); border-radius:14px;
+      background: rgba(0,0,0,.18);
+    }
+    .history ul{list-style:none;padding:0;margin:0}
+    .history li{
+      padding:10px 12px;
+      border-bottom:1px solid rgba(255,255,255,.06);
+      display:flex; justify-content:space-between; gap:10px;
+      color:var(--muted); font-size:13px;
+    }
+    .history li strong{color:var(--text); font-weight:800}
+    .history li:last-child{border-bottom:none}
+
+    .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+    .row > *{flex:1}
+    .smallInput{
+      width:100%;
+      border:1px solid var(--border);
+      border-radius:12px;
+      background: rgba(0,0,0,.18);
+      color: var(--text);
+      padding:10px 12px;
+      font-size:14px;
+      outline:none;
+    }
+    .hint{color:var(--muted); font-size:12px; margin-top:10px}
+    .toast{
+      position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
+      background: rgba(0,0,0,.55);
+      border:1px solid var(--border);
+      color: var(--text);
+      padding:10px 12px;
+      border-radius:999px;
+      font-size:13px;
+      display:none;
+      backdrop-filter: blur(6px);
+    }
+    .divider{height:1px;background:rgba(255,255,255,.08);margin:12px 0}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Marcador Mus — Puntos → Vacas → Tenis</h1>
+      <div class="sub">Juego a 30 · Vaca (mejor de 3 juegos) · “Juego completo” = 2 vacas · Tenis para juegos completos y sets</div>
+    </div>
+    <div class="meta">
+      <span class="k">Set actual: <strong id="setIndex">1</strong></span>
+      <span class="k">Modo tenis: <strong id="modeLabel">Normal</strong></span>
+    </div>
+  </header>
+
+  <div class="grid">
+    <!-- Marcador -->
+    <section class="card">
+      <div class="hd">
+        <div class="pill">🧩 Jerarquía: <span class="mono">30 → Juego → Vaca(2/3) → 2 Vacas → Tenis</span></div>
+        <div class="pill mono" id="rulePill">Tenis: Set a 6 · ventaja 2 · TB en 6–6</div>
+      </div>
+
+      <div class="bd">
+        <div class="teams">
+          <!-- Equipo A -->
+          <div class="team">
+            <div class="teamName">
+              <div class="name">Agus &amp; Marce</div>
+              <div class="sets">Sets: <strong id="setsA">0</strong></div>
+            </div>
+
+            <div class="scoreGrid">
+              <div class="big">
+                <div class="label">Puntos (juego actual, a 30)</div>
+                <div class="value" id="pointsA">0</div>
+              </div>
+              <div class="big">
+                <div class="label">Vaca actual (juegos ganados, a 2)</div>
+                <div class="value" id="gamesInVacaA">0</div>
+              </div>
+
+              <div class="big">
+                <div class="label">Vacas en el “juego completo” (a 2)</div>
+                <div class="value" id="vacasA">0</div>
+              </div>
+              <div class="big">
+                <div class="label">Tenis: juegos completos (set actual)</div>
+                <div class="value" id="tennisGamesA">0</div>
+              </div>
+            </div>
+
+            <div class="btnRow3">
+              <button class="primary" onclick="addPoints('A', 1)">+1</button>
+              <button class="primary" onclick="addPoints('A', 2)">+2</button>
+              <button class="primary" onclick="addPoints('A', 3)">+3</button>
+            </div>
+            <div class="btnRow3">
+              <button class="primary" onclick="addPoints('A', 4)">+4</button>
+              <button class="warn" onclick="addPoints('A', 5)">+5</button>
+              <button class="warn" onclick="addPoints('A', 10)">+10</button>
+            </div>
+            <div class="btnRow">
+              <button class="ghost" onclick="addPoints('A', -1)">-1</button>
+              <button class="ghost" onclick="awardGame('A')">🏁 Forzar juego</button>
+            </div>
+          </div>
+
+          <!-- Equipo B -->
+          <div class="team">
+            <div class="teamName">
+              <div class="name">Miguel &amp; Tito</div>
+              <div class="sets">Sets: <strong id="setsB">0</strong></div>
+            </div>
+
+            <div class="scoreGrid">
+              <div class="big">
+                <div class="label">Puntos (juego actual, a 30)</div>
+                <div class="value" id="pointsB">0</div>
+              </div>
+              <div class="big">
+                <div class="label">Vaca actual (juegos ganados, a 2)</div>
+                <div class="value" id="gamesInVacaB">0</div>
+              </div>
+
+              <div class="big">
+                <div class="label">Vacas en el “juego completo” (a 2)</div>
+                <div class="value" id="vacasB">0</div>
+              </div>
+              <div class="big">
+                <div class="label">Tenis: juegos completos (set actual)</div>
+                <div class="value" id="tennisGamesB">0</div>
+              </div>
+            </div>
+
+            <div class="btnRow3">
+              <button class="primary" onclick="addPoints('B', 1)">+1</button>
+              <button class="primary" onclick="addPoints('B', 2)">+2</button>
+              <button class="primary" onclick="addPoints('B', 3)">+3</button>
+            </div>
+            <div class="btnRow3">
+              <button class="primary" onclick="addPoints('B', 4)">+4</button>
+              <button class="warn" onclick="addPoints('B', 5)">+5</button>
+              <button class="warn" onclick="addPoints('B', 10)">+10</button>
+            </div>
+            <div class="btnRow">
+              <button class="ghost" onclick="addPoints('B', -1)">-1</button>
+              <button class="ghost" onclick="awardGame('B')">🏁 Forzar juego</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="controls">
+          <button onclick="undo()">↩️ Deshacer</button>
+          <button class="ghost" onclick="newMatch()">🆕 Nuevo partido</button>
+          <button class="danger" onclick="resetAll()">🧨 Reiniciar todo</button>
+        </div>
+
+        <div class="hint">
+          Automático: al llegar a <strong>30 puntos</strong> se gana el <strong>juego</strong>.
+          Con <strong>2 juegos</strong> se gana la <strong>vaca</strong>.
+          Con <strong>2 vacas</strong> se gana un <strong>juego completo</strong> (eso suma en el tenis del set).
+        </div>
+      </div>
+    </section>
+
+    <!-- Ajustes + Historial -->
+    <aside class="card">
+      <div class="hd">
+        <div class="pill">⚙️ Tenis (para juegos completos)</div>
+        <div class="pill">📝 Historial</div>
+      </div>
+      <div class="bd">
+        <div class="row">
+          <div>
+            <label class="label" for="targetGames">Juegos completos para ganar set</label>
+            <input class="smallInput" id="targetGames" type="number" min="1" value="6" />
+          </div>
+          <div>
+            <label class="label" for="winBy">Ventaja mínima</label>
+            <input class="smallInput" id="winBy" type="number" min="1" value="2" />
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:10px">
+          <div>
+            <label class="label" for="useTiebreak">Tiebreak en empate</label>
+            <select class="smallInput" id="useTiebreak">
+              <option value="yes" selected>Sí</option>
+              <option value="no">No</option>
+            </select>
+          </div>
+          <div>
+            <label class="label" for="tbTarget">Objetivo TB (si hay)</label>
+            <input class="smallInput" id="tbTarget" type="number" min="1" value="7" />
+          </div>
+        </div>
+
+        <div style="margin-top:10px" class="controls">
+          <button class="ghost" onclick="applySettings()">Aplicar tenis</button>
+          <button class="ghost" onclick="exportJSON()">Exportar JSON</button>
+        </div>
+
+        <div class="hint">
+          Nota: los ajustes aquí solo afectan a cómo se cierran sets en el “tenis” de <em>juegos completos</em>.
+        </div>
+
+        <div style="margin-top:14px" class="history">
+          <ul id="historyList"></ul>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // =========================
+  // Reglas fijas (mus)
+  // =========================
+  const POINTS_TO_WIN_GAME = 30;   // cada juego a 30 puntos
+  const GAMES_TO_WIN_VACA = 2;     // vaca al mejor de 3 (gana 2 juegos)
+  const VACAS_TO_WIN_TENNIS_GAME = 2; // “juego completo” = 2 vacas
+
+  // =========================
+  // Estado + persistencia
+  // =========================
+  const STORAGE_KEY = "mus_puntos_vacas_tenis_v2";
+
+  const defaultState = () => ({
+    settings: { targetGames: 6, winBy: 2, useTiebreak: true, tbTarget: 7 }, // tenis para juegos completos
+    // nivel mus
+    mus: {
+      pointsA: 0, pointsB: 0,                 // puntos del juego actual
+      gamesInVacaA: 0, gamesInVacaB: 0,       // juegos ganados en la vaca actual
+      vacasA: 0, vacasB: 0,                   // vacas ganadas dentro del “juego completo”
+    },
+    // nivel tenis (juegos completos dentro del set actual)
+    tennis: {
+      gamesA: 0, gamesB: 0, inTiebreak: false // si usáis TB para sets
+    },
+    sets: [], // cada set: {a,b,tiebreak:boolean}
+    match: { setsA: 0, setsB: 0 },
+    history: [],
+    undoStack: []
+  });
+
+  let state = loadState();
+
+  function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+  function loadState(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return defaultState();
+      return deepMerge(defaultState(), JSON.parse(raw));
+    }catch(e){ return defaultState(); }
+  }
+  function deepMerge(base, extra){
+    for(const k in extra){
+      if(extra[k] && typeof extra[k] === "object" && !Array.isArray(extra[k])){
+        base[k] = deepMerge(base[k] || {}, extra[k]);
+      } else base[k] = extra[k];
+    }
+    return base;
+  }
+
+  // =========================
+  // UI helpers
+  // =========================
+  function snapshotForUndo(label){
+    state.undoStack.push({ label, snapshot: JSON.parse(JSON.stringify(state)) });
+    if(state.undoStack.length > 80) state.undoStack.shift();
+  }
+  function toast(msg){
+    const el = document.getElementById("toast");
+    el.textContent = msg;
+    el.style.display = "block";
+    clearTimeout(toast._t);
+    toast._t = setTimeout(()=> el.style.display="none", 1600);
+  }
+  function addHistory(msg){
+    const stamp = new Date().toLocaleString("es-ES",{hour:"2-digit",minute:"2-digit",day:"2-digit",month:"2-digit"});
+    state.history.unshift({ msg, stamp });
+    if(state.history.length > 120) state.history.pop();
+  }
+  function escapeHTML(s){
+    return String(s).replace(/[&<>"']/g, c => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+    }[c]));
+  }
+
+  // =========================
+  // Lógica mus: puntos → juego → vaca → juego completo
+  // =========================
+  function addPoints(team, delta){
+    snapshotForUndo(`Puntos ${team} ${delta>0?'+':''}${delta}`);
+    const key = team === "A" ? "pointsA" : "pointsB";
+    state.mus[key] = Math.max(0, state.mus[key] + delta);
+
+    addHistory(`${delta>=0?'+':'-'}${Math.abs(delta)} punto(s) a ${team==='A'?'Agus & Marce':'Miguel & Tito'} · (${state.mus.pointsA}-${state.mus.pointsB})`);
+
+    // Si llega a 30 o más, gana juego automáticamente
+    if(state.mus[key] >= POINTS_TO_WIN_GAME){
+      awardGame(team, true);
+    } else {
+      saveState(); render();
+    }
+  }
+
+  // Award juego (gana un juego dentro de la vaca actual)
+  function awardGame(team, fromAuto=false){
+    snapshotForUndo(`Gana juego ${team}`);
+    if(!fromAuto){
+      addHistory(`🏁 Juego forzado para ${team==='A'?'Agus & Marce':'Miguel & Tito'}`);
+    } else {
+      addHistory(`✅ Juego (a ${POINTS_TO_WIN_GAME}) para ${team==='A'?'Agus & Marce':'Miguel & Tito'}`);
+    }
+
+    // reset puntos del juego actual
+    state.mus.pointsA = 0;
+    state.mus.pointsB = 0;
+
+    // suma juego a la vaca
+    if(team === "A") state.mus.gamesInVacaA++;
+    else state.mus.gamesInVacaB++;
+
+    // ¿se cierra la vaca?
+    if(state.mus.gamesInVacaA >= GAMES_TO_WIN_VACA || state.mus.gamesInVacaB >= GAMES_TO_WIN_VACA){
+      const vacaWinner = state.mus.gamesInVacaA > state.mus.gamesInVacaB ? "A" : "B";
+      closeVaca(vacaWinner);
+    } else {
+      saveState(); render();
+    }
+  }
+
+  function closeVaca(winner){
+    addHistory(`🐮 Vaca para ${winner==='A'?'Agus & Marce':'Miguel & Tito'} · (Juegos en vaca: ${state.mus.gamesInVacaA}-${state.mus.gamesInVacaB})`);
+    toast(`Vaca: ${winner==='A'?'Agus & Marce':'Miguel & Tito'}`);
+
+    // suma vaca al juego completo
+    if(winner === "A") state.mus.vacasA++;
+    else state.mus.vacasB++;
+
+    // reset juegos de la vaca
+    state.mus.gamesInVacaA = 0;
+    state.mus.gamesInVacaB = 0;
+
+    // ¿se cierra el “juego completo” (2 vacas)?
+    if(state.mus.vacasA >= VACAS_TO_WIN_TENNIS_GAME || state.mus.vacasB >= VACAS_TO_WIN_TENNIS_GAME){
+      const tennisGameWinner = state.mus.vacasA > state.mus.vacasB ? "A" : "B";
+      closeTennisGame(tennisGameWinner);
+    } else {
+      saveState(); render();
+    }
+  }
+
+  function closeTennisGame(winner){
+    addHistory(`🎾 Juego completo (2 vacas) para ${winner==='A'?'Agus & Marce':'Miguel & Tito'}`);
+    toast(`Juego completo: ${winner==='A'?'Agus & Marce':'Miguel & Tito'}`);
+
+    // reset vacas del juego completo
+    state.mus.vacasA = 0;
+    state.mus.vacasB = 0;
+
+    // suma en tenis (juegos completos del set actual)
+    if(winner === "A") state.tennis.gamesA++;
+    else state.tennis.gamesB++;
+
+    evaluateSetEnd();
+    saveState();
+    render();
+  }
+
+  // =========================
+  // Lógica tenis: juegos completos → set
+  // =========================
+  function evaluateSetEnd(){
+    const { targetGames, winBy, useTiebreak, tbTarget } = state.settings;
+    let a = state.tennis.gamesA;
+    let b = state.tennis.gamesB;
+
+    // activar tiebreak al empate exacto
+    if(useTiebreak && !state.tennis.inTiebreak && a === targetGames && b === targetGames){
+      state.tennis.inTiebreak = true;
+      addHistory(`⚡ Tiebreak activado (${targetGames}-${targetGames}) — ahora el set se decide a ${tbTarget} con ventaja ${winBy}`);
+      toast("Tiebreak activado");
+      return;
+    }
+
+    if(!state.tennis.inTiebreak){
+      if((a >= targetGames || b >= targetGames) && Math.abs(a-b) >= winBy){
+        closeSet(false);
+      }
+    } else {
+      // en TB reutilizamos gamesA/gamesB como puntos de TB (simple)
+      if((a >= tbTarget || b >= tbTarget) && Math.abs(a-b) >= winBy){
+        closeSet(true);
+      }
+    }
+  }
+
+  function closeSet(wasTiebreak){
+    const a = state.tennis.gamesA;
+    const b = state.tennis.gamesB;
+
+    state.sets.push({ a, b, tiebreak: wasTiebreak });
+    if(a > b) state.match.setsA++;
+    else state.match.setsB++;
+
+    addHistory(`🏆 Set para ${a>b?'Agus & Marce':'Miguel & Tito'} · ${a}-${b}${wasTiebreak?' (TB)':''}`);
+    toast(`Set ${state.sets.length}: ${a}-${b}${wasTiebreak?' (TB)':''}`);
+
+    // reset set actual (tenis)
+    state.tennis.gamesA = 0;
+    state.tennis.gamesB = 0;
+    state.tennis.inTiebreak = false;
+  }
+
+  // =========================
+  // Controles generales
+  // =========================
+  function undo(){
+    const last = state.undoStack.pop();
+    if(!last){ toast("Nada que deshacer"); return; }
+    state = last.snapshot;
+    addHistory(`↩️ Deshacer: ${last.label}`);
+    saveState(); render();
+  }
+
+  function newMatch(){
+    snapshotForUndo("Nuevo partido");
+    // Resetea todo el marcador pero conserva ajustes
+    const keep = JSON.parse(JSON.stringify(state.settings));
+    state = defaultState();
+    state.settings = keep;
+    addHistory("🆕 Nuevo partido (todo a 0; ajustes tenis se mantienen)");
+    saveState(); render();
+    toast("Nuevo partido");
+  }
+
+  function resetAll(){
+    if(!confirm("Esto borrará TODO (marcador + historial + ajustes). ¿Seguro?")) return;
+    state = defaultState();
+    saveState(); render();
+    toast("Reiniciado");
+  }
+
+  // =========================
+  // Ajustes tenis
+  // =========================
+  function applySettings(){
+    const tg = parseInt(document.getElementById("targetGames").value, 10);
+    const wb = parseInt(document.getElementById("winBy").value, 10);
+    const ut = document.getElementById("useTiebreak").value === "yes";
+    const tb = parseInt(document.getElementById("tbTarget").value, 10);
+
+    if(!Number.isFinite(tg) || tg < 1) return toast("Juegos para set inválido");
+    if(!Number.isFinite(wb) || wb < 1) return toast("Ventaja inválida");
+    if(!Number.isFinite(tb) || tb < 1) return toast("Objetivo TB inválido");
+
+    snapshotForUndo("Aplicar ajustes tenis");
+    state.settings.targetGames = tg;
+    state.settings.winBy = wb;
+    state.settings.useTiebreak = ut;
+    state.settings.tbTarget = tb;
+
+    addHistory(`⚙️ Tenis: set a ${tg}, ventaja ${wb}, TB ${ut?'sí':'no'}${ut?` (a ${tb})`:''}`);
+    saveState(); render();
+    toast("Ajustes aplicados");
+  }
+
+  function exportJSON(){
+    const data = JSON.stringify(state, null, 2);
+    navigator.clipboard?.writeText(data);
+    const blob = new Blob([data], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "marcador-mus.json";
+    a.click();
+    URL.revokeObjectURL(url);
+    toast("JSON exportado");
+  }
+
+  // =========================
+  // Render
+  // =========================
+  function render(){
+    // Mus
+    document.getElementById("pointsA").textContent = state.mus.pointsA;
+    document.getElementById("pointsB").textContent = state.mus.pointsB;
+    document.getElementById("gamesInVacaA").textContent = state.mus.gamesInVacaA;
+    document.getElementById("gamesInVacaB").textContent = state.mus.gamesInVacaB;
+    document.getElementById("vacasA").textContent = state.mus.vacasA;
+    document.getElementById("vacasB").textContent = state.mus.vacasB;
+
+    // Tenis
+    document.getElementById("tennisGamesA").textContent = state.tennis.gamesA;
+    document.getElementById("tennisGamesB").textContent = state.tennis.gamesB;
+    document.getElementById("setsA").textContent = state.match.setsA;
+    document.getElementById("setsB").textContent = state.match.setsB;
+
+    document.getElementById("setIndex").textContent = (state.sets.length + 1);
+    document.getElementById("modeLabel").textContent = state.tennis.inTiebreak ? "Tiebreak" : "Normal";
+
+    const { targetGames, winBy, useTiebreak, tbTarget } = state.settings;
+    document.getElementById("rulePill").textContent =
+      `Tenis: Set a ${targetGames} · ventaja ${winBy}` + (useTiebreak ? ` · TB en ${targetGames}–${targetGames} (a ${tbTarget})` : "");
+
+    // inputs
+    document.getElementById("targetGames").value = state.settings.targetGames;
+    document.getElementById("winBy").value = state.settings.winBy;
+    document.getElementById("useTiebreak").value = state.settings.useTiebreak ? "yes" : "no";
+    document.getElementById("tbTarget").value = state.settings.tbTarget;
+
+    // history
+    const ul = document.getElementById("historyList");
+    ul.innerHTML = "";
+    state.history.forEach(item=>{
+      const li = document.createElement("li");
+      li.innerHTML = `<span><strong>${escapeHTML(item.msg)}</strong></span><span class="mono">${escapeHTML(item.stamp)}</span>`;
+      ul.appendChild(li);
+    });
+
+    saveState();
+  }
+
+  render();
+  window.addEventListener("beforeunload", saveState);
+</script>
+</body>
+</html>
