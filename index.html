@@ -784,22 +784,332 @@ function render() {
 
   // Service Worker (PWA)
   if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => {
-      navigator.serviceWorker.register("./service-worker.js");
-    });
+<script>
+/* =========================
+   Reglas fijas (mus)
+   ========================= */
+const POINTS_TO_WIN_GAME = 30;           // juego a 30 puntos
+const GAMES_TO_WIN_VACA = 2;             // vaca al mejor de 3 (gana 2)
+const VACAS_TO_WIN_TENNIS_GAME = 2;      // juego completo = 2 vacas
+
+/* =========================
+   Estado + persistencia
+   ========================= */
+const STORAGE_KEY = "mus_pwa_score_v3";
+
+const defaultState = () => ({
+  settings: { targetGames: 6, winBy: 2, useTiebreak: true, tbTarget: 7 }, // tenis para juegos completos
+  mus: {
+    pointsA: 0, pointsB: 0,
+    gamesInVacaA: 0, gamesInVacaB: 0,
+    vacasA: 0, vacasB: 0,
+  },
+  tennis: { gamesA: 0, gamesB: 0, inTiebreak: false },
+  sets: [],
+  match: { setsA: 0, setsB: 0 },
+  history: [],
+  undoStack: []
+});
+
+let state = loadState();
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function deepMerge(base, extra) {
+  for (const k in extra) {
+    if (extra[k] && typeof extra[k] === "object" && !Array.isArray(extra[k])) {
+      base[k] = deepMerge(base[k] || {}, extra[k]);
+    } else {
+      base[k] = extra[k];
+    }
   }
-    
-/* =========================================================
-   SERVICE WORKER (PWA)
-   ========================================================= */
+  return base;
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return defaultState();
+    return deepMerge(defaultState(), JSON.parse(raw));
+  } catch {
+    return defaultState();
+  }
+}
+
+/* =========================
+   Helpers UI
+   ========================= */
+const $ = (id) => document.getElementById(id);
+
+function snapshotForUndo(label) {
+  state.undoStack.push({ label, snapshot: JSON.parse(JSON.stringify(state)) });
+  if (state.undoStack.length > 80) state.undoStack.shift();
+}
+
+function toast(msg) {
+  const el = $("toast");
+  el.textContent = msg;
+  el.style.display = "block";
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => (el.style.display = "none"), 1500);
+}
+
+function addHistory(msg) {
+  const stamp = new Date().toLocaleString("es-ES", {
+    hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit"
+  });
+  state.history.unshift({ msg, stamp });
+  if (state.history.length > 120) state.history.pop();
+}
+
+function escapeHTML(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+  }[c]));
+}
+
+/* =========================
+   Lógica mus: puntos → juego → vaca → juego completo
+   ========================= */
+function addPoints(team, delta) {
+  snapshotForUndo(`Puntos ${team} ${delta > 0 ? "+" : ""}${delta}`);
+
+  const key = team === "A" ? "pointsA" : "pointsB";
+  state.mus[key] = Math.max(0, state.mus[key] + delta);
+
+  addHistory(`${delta >= 0 ? "+" : "-"}${Math.abs(delta)} punto(s) a ${team === "A" ? "Agus & Marce" : "Miguel & Tito"} · (${state.mus.pointsA}-${state.mus.pointsB})`);
+
+  if (state.mus[key] >= POINTS_TO_WIN_GAME) {
+    awardGame(team, true);
+  } else {
+    saveState();
+    render();
+  }
+}
+
+function awardGame(team, fromAuto = false) {
+  snapshotForUndo(`Gana juego ${team}`);
+
+  addHistory(
+    fromAuto
+      ? `✅ Juego (a ${POINTS_TO_WIN_GAME}) para ${team === "A" ? "Agus & Marce" : "Miguel & Tito"}`
+      : `🏁 Juego forzado para ${team === "A" ? "Agus & Marce" : "Miguel & Tito"}`
+  );
+
+  // reset puntos
+  state.mus.pointsA = 0;
+  state.mus.pointsB = 0;
+
+  // suma juego a la vaca
+  if (team === "A") state.mus.gamesInVacaA++;
+  else state.mus.gamesInVacaB++;
+
+  // ¿cierra vaca?
+  if (state.mus.gamesInVacaA >= GAMES_TO_WIN_VACA || state.mus.gamesInVacaB >= GAMES_TO_WIN_VACA) {
+    const vacaWinner = state.mus.gamesInVacaA > state.mus.gamesInVacaB ? "A" : "B";
+    closeVaca(vacaWinner);
+  } else {
+    saveState();
+    render();
+  }
+}
+
+function closeVaca(winner) {
+  addHistory(`🐮 Vaca para ${winner === "A" ? "Agus & Marce" : "Miguel & Tito"} · (Juegos en vaca: ${state.mus.gamesInVacaA}-${state.mus.gamesInVacaB})`);
+  toast(`Vaca: ${winner === "A" ? "Agus & Marce" : "Miguel & Tito"}`);
+
+  // suma vaca al juego completo
+  if (winner === "A") state.mus.vacasA++;
+  else state.mus.vacasB++;
+
+  // reset juegos de la vaca
+  state.mus.gamesInVacaA = 0;
+  state.mus.gamesInVacaB = 0;
+
+  // ¿cierra juego completo?
+  if (state.mus.vacasA >= VACAS_TO_WIN_TENNIS_GAME || state.mus.vacasB >= VACAS_TO_WIN_TENNIS_GAME) {
+    const tgWinner = state.mus.vacasA > state.mus.vacasB ? "A" : "B";
+    closeTennisGame(tgWinner);
+  } else {
+    saveState();
+    render();
+  }
+}
+
+function closeTennisGame(winner) {
+  addHistory(`🎾 Juego completo (2 vacas) para ${winner === "A" ? "Agus & Marce" : "Miguel & Tito"}`);
+  toast(`Juego completo: ${winner === "A" ? "Agus & Marce" : "Miguel & Tito"}`);
+
+  // reset vacas del juego completo
+  state.mus.vacasA = 0;
+  state.mus.vacasB = 0;
+
+  // suma en tenis
+  if (winner === "A") state.tennis.gamesA++;
+  else state.tennis.gamesB++;
+
+  evaluateSetEnd();
+  saveState();
+  render();
+}
+
+/* =========================
+   Tenis: juegos completos → set
+   ========================= */
+function evaluateSetEnd() {
+  const { targetGames, winBy, useTiebreak, tbTarget } = state.settings;
+  const a = state.tennis.gamesA;
+  const b = state.tennis.gamesB;
+
+  if (useTiebreak && !state.tennis.inTiebreak && a === targetGames && b === targetGames) {
+    state.tennis.inTiebreak = true;
+    addHistory(`⚡ Tiebreak activado (${targetGames}-${targetGames}) — set a ${tbTarget} (ventaja ${winBy})`);
+    toast("Tiebreak activado");
+    return;
+  }
+
+  if (!state.tennis.inTiebreak) {
+    if ((a >= targetGames || b >= targetGames) && Math.abs(a - b) >= winBy) closeSet(false);
+  } else {
+    if ((a >= tbTarget || b >= tbTarget) && Math.abs(a - b) >= winBy) closeSet(true);
+  }
+}
+
+function closeSet(wasTiebreak) {
+  const a = state.tennis.gamesA;
+  const b = state.tennis.gamesB;
+
+  state.sets.push({ a, b, tiebreak: wasTiebreak });
+  if (a > b) state.match.setsA++;
+  else state.match.setsB++;
+
+  addHistory(`🏆 Set para ${a > b ? "Agus & Marce" : "Miguel & Tito"} · ${a}-${b}${wasTiebreak ? " (TB)" : ""}`);
+  toast(`Set ${state.sets.length}: ${a}-${b}${wasTiebreak ? " (TB)" : ""}`);
+
+  state.tennis.gamesA = 0;
+  state.tennis.gamesB = 0;
+  state.tennis.inTiebreak = false;
+}
+
+/* =========================
+   Controles
+   ========================= */
+function undo() {
+  const last = state.undoStack.pop();
+  if (!last) { toast("Nada que deshacer"); return; }
+  state = last.snapshot;
+  addHistory(`↩️ Deshacer: ${last.label}`);
+  saveState();
+  render();
+}
+
+function newMatch() {
+  snapshotForUndo("Nuevo partido");
+  const keep = JSON.parse(JSON.stringify(state.settings));
+  state = defaultState();
+  state.settings = keep;
+  addHistory("🆕 Nuevo partido (todo a 0; ajustes tenis se mantienen)");
+  saveState();
+  render();
+  toast("Nuevo partido");
+}
+
+function resetAll() {
+  if (!confirm("Esto borrará TODO (marcador + historial + ajustes). ¿Seguro?")) return;
+  state = defaultState();
+  saveState();
+  render();
+  toast("Reiniciado");
+}
+
+function applySettings() {
+  snapshotForUndo("Aplicar ajustes tenis");
+
+  const tg = parseInt($("targetGames").value, 10);
+  const wb = parseInt($("winBy").value, 10);
+  const ut = $("useTiebreak").value === "yes";
+  const tb = parseInt($("tbTarget").value, 10);
+
+  if (!Number.isFinite(tg) || tg < 1) return toast("Juegos para set inválido");
+  if (!Number.isFinite(wb) || wb < 1) return toast("Ventaja inválida");
+  if (!Number.isFinite(tb) || tb < 1) return toast("Objetivo TB inválido");
+
+  state.settings.targetGames = tg;
+  state.settings.winBy = wb;
+  state.settings.useTiebreak = ut;
+  state.settings.tbTarget = tb;
+
+  addHistory(`⚙️ Tenis: set a ${tg}, ventaja ${wb}, TB ${ut ? "sí" : "no"}${ut ? ` (a ${tb})` : ""}`);
+  saveState();
+  render();
+  toast("Ajustes aplicados");
+}
+
+function exportJSON() {
+  const data = JSON.stringify(state, null, 2);
+  // Copia al portapapeles si se puede
+  navigator.clipboard?.writeText(data);
+  // Descarga
+  const blob = new Blob([data], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "marcador-mus.json";
+  a.click();
+  URL.revokeObjectURL(url);
+  toast("JSON exportado");
+}
+
+/* =========================
+   Render
+   ========================= */
+function render() {
+  $("pointsA").textContent = state.mus.pointsA;
+  $("pointsB").textContent = state.mus.pointsB;
+  $("gamesInVacaA").textContent = state.mus.gamesInVacaA;
+  $("gamesInVacaB").textContent = state.mus.gamesInVacaB;
+  $("vacasA").textContent = state.mus.vacasA;
+  $("vacasB").textContent = state.mus.vacasB;
+
+  $("tennisGamesA").textContent = state.tennis.gamesA;
+  $("tennisGamesB").textContent = state.tennis.gamesB;
+  $("setsA").textContent = state.match.setsA;
+  $("setsB").textContent = state.match.setsB;
+
+  $("setIndex").textContent = String(state.sets.length + 1);
+  $("modeLabel").textContent = state.tennis.inTiebreak ? "Tiebreak" : "Normal";
+
+  const { targetGames, winBy, useTiebreak, tbTarget } = state.settings;
+  $("rulePill").textContent =
+    `Tenis: Set a ${targetGames} · ventaja ${winBy}` +
+    (useTiebreak ? ` · TB en ${targetGames}–${targetGames} (a ${tbTarget})` : "");
+
+  // Historial
+  const ul = $("historyList");
+  ul.innerHTML = "";
+  state.history.forEach((item) => {
+    const li = document.createElement("li");
+    li.innerHTML = `<span><strong>${escapeHTML(item.msg)}</strong></span><span class="mono">${escapeHTML(item.stamp)}</span>`;
+    ul.appendChild(li);
+  });
+
+  saveState();
+}
+
+/* =========================
+   Init + Service Worker
+   ========================= */
+document.addEventListener("DOMContentLoaded", () => {
+  render();
+});
+
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("./service-worker.js");
   });
 }
-
-/* INIT */
-render();
 </script>
 </body>
 </html>
