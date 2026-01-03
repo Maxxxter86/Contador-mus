@@ -3,7 +3,18 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+
   <title>Marcador Mus (Puntos→Vacas→Tenis)</title>
+  <meta name="description" content="Marcador de Mus por puntos, vacas y sets tipo tenis">
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0b1220">
+
+  <!-- Iconos -->
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+
   <style>
     :root{
       --bg:#0b1220; --card:#121b2f; --muted:#a7b0c0; --text:#eef2ff;
@@ -13,7 +24,8 @@
     }
     *{box-sizing:border-box}
     body{
-      margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
       background:
         radial-gradient(1200px 700px at 20% 0%, rgba(110,231,183,.12), transparent 55%),
         radial-gradient(900px 600px at 90% 20%, rgba(59,130,246,.12), transparent 55%),
@@ -34,53 +46,8 @@
       box-shadow: var(--shadow);
       overflow:hidden;
     }
-    .card .hd{
-      padding:14px 14px 10px;
-      border-bottom:1px solid var(--border);
-      display:flex; align-items:center; justify-content:space-between; gap:10px;
-      flex-wrap:wrap;
-    }
-    .card .bd{padding:14px}
-    .pill{
-      display:inline-flex; align-items:center; gap:8px;
-      padding:6px 10px; border:1px solid var(--border); border-radius:999px;
-      color:var(--muted); font-size:12px; background: rgba(0,0,0,.18);
-    }
-    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
-    .meta{display:flex; flex-wrap:wrap; gap:10px; align-items:center}
-    .meta .k{
-      color:var(--muted); font-size:12px;
-      border:1px solid var(--border); background: rgba(0,0,0,.18);
-      padding:6px 10px; border-radius:999px;
-    }
-
-    .teams{display:grid;grid-template-columns:1fr;gap:10px}
-    @media (min-width: 560px){.teams{grid-template-columns:1fr 1fr}}
-
-    .team{
-      border:1px solid var(--border);
-      border-radius:16px;
-      padding:12px;
-      background: rgba(0,0,0,.18);
-    }
-    .teamName{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:10px}
-    .teamName .name{font-weight:800;font-size:16px}
-    .teamName .sets{font-size:13px;color:var(--muted)}
-    .scoreGrid{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap:10px;
-      align-items:stretch;
-    }
-    .big{
-      border:1px solid var(--border);
-      border-radius:16px;
-      padding:12px;
-      background: rgba(255,255,255,.04);
-      display:flex; flex-direction:column; justify-content:center;
-      min-height:88px;
-    }
-<head>
+  </style>
+</head>
   <!-- Básico -->
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
