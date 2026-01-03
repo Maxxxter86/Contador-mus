@@ -1,4 +1,4 @@
-const CACHE_NAME = "mus-marcador-v2";
+const CACHE_NAME = "mus-marcador-v3";
 
 const FILES_TO_CACHE = [
   "./",              // importante en GitHub Pages
