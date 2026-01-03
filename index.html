@@ -80,68 +80,38 @@
       display:flex; flex-direction:column; justify-content:center;
       min-height:88px;
     }
-    .label{color:var(--muted);font-size:12px}
-    .value{font-size:40px;font-weight:900;line-height:1.0;margin-top:6px;letter-spacing:.3px}
-    .valueSmall{font-size:22px;font-weight:800;margin-top:8px}
-    .btnRow{display:grid;grid-template-columns: 1fr 1fr; gap:10px; margin-top:10px}
-    .btnRow3{display:grid;grid-template-columns: repeat(3, 1fr); gap:10px; margin-top:10px}
-    button{
-      appearance:none; border:1px solid var(--border);
-      background: rgba(255,255,255,.06);
-      color:var(--text);
-      border-radius:14px; padding:12px;
-      font-size:15px; font-weight:800; cursor:pointer;
-      transition: transform .05s ease, background .2s ease, border-color .2s ease;
-      user-select:none;
-    }
-    button:active{transform:scale(.98)}
-    button.primary{background: rgba(110,231,183,.15); border-color: rgba(110,231,183,.35)}
-    button.ghost{background: rgba(0,0,0,.18)}
-    button.danger{background: rgba(251,113,133,.14); border-color: rgba(251,113,133,.35)}
-    button.warn{background: rgba(251,191,36,.12); border-color: rgba(251,191,36,.35)}
-    .controls{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
-    .controls button{flex:1; min-width:160px}
+<head>
+  <!-- Básico -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Marcador de Mus</title>
+  <meta name="description" content="Marcador de Mus por puntos, vacas y sets con formato tipo tenis">
 
-    .history{
-      max-height: 360px; overflow:auto;
-      border:1px solid var(--border); border-radius:14px;
-      background: rgba(0,0,0,.18);
-    }
-    .history ul{list-style:none;padding:0;margin:0}
-    .history li{
-      padding:10px 12px;
-      border-bottom:1px solid rgba(255,255,255,.06);
-      display:flex; justify-content:space-between; gap:10px;
-      color:var(--muted); font-size:13px;
-    }
-    .history li strong{color:var(--text); font-weight:800}
-    .history li:last-child{border-bottom:none}
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0b1220">
+  <meta name="background-color" content="#0b1220">
 
-    .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
-    .row > *{flex:1}
-    .smallInput{
-      width:100%;
-      border:1px solid var(--border);
-      border-radius:12px;
-      background: rgba(0,0,0,.18);
-      color: var(--text);
-      padding:10px 12px;
-      font-size:14px;
-      outline:none;
+  <!-- iOS (por si acaso) -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Marcador Mus">
+  <link rel="apple-touch-icon" href="icon-192.png">
+
+  <!-- Iconos -->
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+
+  <!-- Tipografía sistema (no externa, más rápida) -->
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont,
+                   "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell,
+                   "Open Sans", "Helvetica Neue", sans-serif;
+      background-color: #0b1220;
+      color: #eef2ff;
     }
-    .hint{color:var(--muted); font-size:12px; margin-top:10px}
-    .toast{
-      position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
-      background: rgba(0,0,0,.55);
-      border:1px solid var(--border);
-      color: var(--text);
-      padding:10px 12px;
-      border-radius:999px;
-      font-size:13px;
-      display:none;
-      backdrop-filter: blur(6px);
-    }
-    .divider{height:1px;background:rgba(255,255,255,.08);margin:12px 0}
   </style>
 </head>
 <body>
