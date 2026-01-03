@@ -540,70 +540,270 @@
     state.settings.winBy = wb;
     state.settings.useTiebreak = ut;
     state.settings.tbTarget = tb;
+<script>
+/* =========================================================
+   REGLAS DE MUS
+   ========================================================= */
+const POINTS_TO_WIN_GAME = 30;          // Juego a 30 puntos
+const GAMES_TO_WIN_VACA = 2;            // Vaca al mejor de 3 (gana 2)
+const VACAS_TO_WIN_TENNIS_GAME = 2;     // Juego completo = 2 vacas
 
-    addHistory(`⚙️ Tenis: set a ${tg}, ventaja ${wb}, TB ${ut?'sí':'no'}${ut?` (a ${tb})`:''}`);
-    saveState(); render();
-    toast("Ajustes aplicados");
+/* =========================================================
+   ESTADO Y PERSISTENCIA
+   ========================================================= */
+const STORAGE_KEY = "mus_pwa_score_v1";
+
+const defaultState = () => ({
+  settings: {
+    targetGames: 6,   // juegos completos para ganar set
+    winBy: 2,
+    useTiebreak: true,
+    tbTarget: 7
+  },
+  mus: {
+    pointsA: 0, pointsB: 0,
+    gamesInVacaA: 0, gamesInVacaB: 0,
+    vacasA: 0, vacasB: 0
+  },
+  tennis: {
+    gamesA: 0, gamesB: 0,
+    inTiebreak: false
+  },
+  sets: [],
+  match: { setsA: 0, setsB: 0 },
+  history: [],
+  undoStack: []
+});
+
+let state = loadState();
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return defaultState();
+    return Object.assign(defaultState(), JSON.parse(raw));
+  } catch {
+    return defaultState();
   }
+}
 
-  function exportJSON(){
-    const data = JSON.stringify(state, null, 2);
-    navigator.clipboard?.writeText(data);
-    const blob = new Blob([data], {type:"application/json"});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "marcador-mus.json";
-    a.click();
-    URL.revokeObjectURL(url);
-    toast("JSON exportado");
-  }
+/* =========================================================
+   UTILIDADES
+   ========================================================= */
+function snapshot(label) {
+  state.undoStack.push({
+    label,
+    snapshot: JSON.parse(JSON.stringify(state))
+  });
+  if (state.undoStack.length > 100) state.undoStack.shift();
+}
 
-  // =========================
-  // Render
-  // =========================
-  function render(){
-    // Mus
-    document.getElementById("pointsA").textContent = state.mus.pointsA;
-    document.getElementById("pointsB").textContent = state.mus.pointsB;
-    document.getElementById("gamesInVacaA").textContent = state.mus.gamesInVacaA;
-    document.getElementById("gamesInVacaB").textContent = state.mus.gamesInVacaB;
-    document.getElementById("vacasA").textContent = state.mus.vacasA;
-    document.getElementById("vacasB").textContent = state.mus.vacasB;
+function toast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.style.display = "block";
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.style.display = "none", 1500);
+}
 
-    // Tenis
-    document.getElementById("tennisGamesA").textContent = state.tennis.gamesA;
-    document.getElementById("tennisGamesB").textContent = state.tennis.gamesB;
-    document.getElementById("setsA").textContent = state.match.setsA;
-    document.getElementById("setsB").textContent = state.match.setsB;
+function log(msg) {
+  const time = new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+  state.history.unshift({ msg, time });
+  if (state.history.length > 100) state.history.pop();
+}
 
-    document.getElementById("setIndex").textContent = (state.sets.length + 1);
-    document.getElementById("modeLabel").textContent = state.tennis.inTiebreak ? "Tiebreak" : "Normal";
+/* =========================================================
+   LÓGICA MUS
+   ========================================================= */
+function addPoints(team, value) {
+  snapshot("Sumar puntos");
+  const key = team === "A" ? "pointsA" : "pointsB";
+  state.mus[key] = Math.max(0, state.mus[key] + value);
 
-    const { targetGames, winBy, useTiebreak, tbTarget } = state.settings;
-    document.getElementById("rulePill").textContent =
-      `Tenis: Set a ${targetGames} · ventaja ${winBy}` + (useTiebreak ? ` · TB en ${targetGames}–${targetGames} (a ${tbTarget})` : "");
+  log(`${team === "A" ? "Agus & Marce" : "Miguel & Tito"} +${value} puntos`);
 
-    // inputs
-    document.getElementById("targetGames").value = state.settings.targetGames;
-    document.getElementById("winBy").value = state.settings.winBy;
-    document.getElementById("useTiebreak").value = state.settings.useTiebreak ? "yes" : "no";
-    document.getElementById("tbTarget").value = state.settings.tbTarget;
-
-    // history
-    const ul = document.getElementById("historyList");
-    ul.innerHTML = "";
-    state.history.forEach(item=>{
-      const li = document.createElement("li");
-      li.innerHTML = `<span><strong>${escapeHTML(item.msg)}</strong></span><span class="mono">${escapeHTML(item.stamp)}</span>`;
-      ul.appendChild(li);
-    });
-
+  if (state.mus[key] >= POINTS_TO_WIN_GAME) {
+    winGame(team);
+  } else {
     saveState();
+    render();
+  }
+}
+
+function winGame(team) {
+  snapshot("Ganar juego");
+  log(`🏁 Juego para ${team === "A" ? "Agus & Marce" : "Miguel & Tito"}`);
+
+  state.mus.pointsA = 0;
+  state.mus.pointsB = 0;
+
+  if (team === "A") state.mus.gamesInVacaA++;
+  else state.mus.gamesInVacaB++;
+
+  if (
+    state.mus.gamesInVacaA >= GAMES_TO_WIN_VACA ||
+    state.mus.gamesInVacaB >= GAMES_TO_WIN_VACA
+  ) {
+    winVaca(state.mus.gamesInVacaA > state.mus.gamesInVacaB ? "A" : "B");
+  } else {
+    saveState();
+    render();
+  }
+}
+
+function winVaca(team) {
+  log(`🐮 Vaca para ${team === "A" ? "Agus & Marce" : "Miguel & Tito"}`);
+  toast("¡Vaca!");
+
+  state.mus.gamesInVacaA = 0;
+  state.mus.gamesInVacaB = 0;
+
+  if (team === "A") state.mus.vacasA++;
+  else state.mus.vacasB++;
+
+  if (
+    state.mus.vacasA >= VACAS_TO_WIN_TENNIS_GAME ||
+    state.mus.vacasB >= VACAS_TO_WIN_TENNIS_GAME
+  ) {
+    winTennisGame(state.mus.vacasA > state.mus.vacasB ? "A" : "B");
+  } else {
+    saveState();
+    render();
+  }
+}
+
+function winTennisGame(team) {
+  log(`🎾 Juego completo para ${team === "A" ? "Agus & Marce" : "Miguel & Tito"}`);
+  toast("Juego completo");
+
+  state.mus.vacasA = 0;
+  state.mus.vacasB = 0;
+
+  if (team === "A") state.tennis.gamesA++;
+  else state.tennis.gamesB++;
+
+  checkSetEnd();
+  saveState();
+  render();
+}
+
+/* =========================================================
+   TENIS (SETS)
+   ========================================================= */
+function checkSetEnd() {
+  const { targetGames, winBy, useTiebreak, tbTarget } = state.settings;
+  const a = state.tennis.gamesA;
+  const b = state.tennis.gamesB;
+
+  if (useTiebreak && !state.tennis.inTiebreak && a === targetGames && b === targetGames) {
+    state.tennis.inTiebreak = true;
+    log("⚡ Tiebreak activado");
+    toast("Tiebreak");
+    return;
   }
 
+  if (!state.tennis.inTiebreak) {
+    if ((a >= targetGames || b >= targetGames) && Math.abs(a - b) >= winBy) {
+      closeSet(false);
+    }
+  } else {
+    if ((a >= tbTarget || b >= tbTarget) && Math.abs(a - b) >= winBy) {
+      closeSet(true);
+    }
+  }
+}
+
+function closeSet(tb) {
+  const a = state.tennis.gamesA;
+  const b = state.tennis.gamesB;
+
+  state.sets.push({ a, b, tb });
+  if (a > b) state.match.setsA++;
+  else state.match.setsB++;
+
+  log(`🏆 Set ${a}-${b}${tb ? " (TB)" : ""}`);
+  toast("Set ganado");
+
+  state.tennis.gamesA = 0;
+  state.tennis.gamesB = 0;
+  state.tennis.inTiebreak = false;
+}
+
+/* =========================================================
+   CONTROLES
+   ========================================================= */
+function undo() {
+  const last = state.undoStack.pop();
+  if (!last) return toast("Nada que deshacer");
+  state = last.snapshot;
+  log(`↩️ Deshacer: ${last.label}`);
+  saveState();
   render();
-  window.addEventListener("beforeunload", saveState);
+}
+
+function newMatch() {
+  snapshot("Nuevo partido");
+  const keepSettings = state.settings;
+  state = defaultState();
+  state.settings = keepSettings;
+  log("🆕 Nuevo partido");
+  saveState();
+  render();
+}
+
+function resetAll() {
+  if (!confirm("¿Borrar todo el marcador?")) return;
+  state = defaultState();
+  saveState();
+  render();
+}
+
+/* =========================================================
+   RENDER
+   ========================================================= */
+function render() {
+  // Mus
+  pointsA.textContent = state.mus.pointsA;
+  pointsB.textContent = state.mus.pointsB;
+  gamesInVacaA.textContent = state.mus.gamesInVacaA;
+  gamesInVacaB.textContent = state.mus.gamesInVacaB;
+  vacasA.textContent = state.mus.vacasA;
+  vacasB.textContent = state.mus.vacasB;
+
+  // Tenis
+  tennisGamesA.textContent = state.tennis.gamesA;
+  tennisGamesB.textContent = state.tennis.gamesB;
+  setsA.textContent = state.match.setsA;
+  setsB.textContent = state.match.setsB;
+  setIndex.textContent = state.sets.length + 1;
+  modeLabel.textContent = state.tennis.inTiebreak ? "Tiebreak" : "Normal";
+
+  // Historial
+  historyList.innerHTML = "";
+  state.history.forEach(h => {
+    const li = document.createElement("li");
+    li.innerHTML = `<strong>${h.msg}</strong><span class="mono">${h.time}</span>`;
+    historyList.appendChild(li);
+  });
+
+  saveState();
+}
+
+/* =========================================================
+   SERVICE WORKER (PWA)
+   ========================================================= */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js");
+  });
+}
+
+/* INIT */
+render();
 </script>
 </body>
 </html>
