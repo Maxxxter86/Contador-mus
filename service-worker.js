@@ -1,11 +1,12 @@
-const CACHE_NAME = "mus-marcador-v6";
+const CACHE_NAME = "mus-marcador-v7";
 
 const FILES_TO_CACHE = [
-  "./",              // importante en GitHub Pages
-  "./index.html",    // tu app real
+  "./",
+  "./index.html",
   "./manifest.json",
   "./icon-192.png",
-  "./icon-512.png"
+  "./icon-512.png",
+  "./service-worker.js"
 ];
 
 self.addEventListener("install", (event) => {
@@ -25,7 +26,28 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
+  const req = event.request;
+  const url = new URL(req.url);
+
+  // Solo manejamos lo que esté dentro del scope /Contador-mus/
+  if (!url.pathname.startsWith("/Contador-mus/")) return;
+
+  // 1) INDEX: network-first para coger siempre la última versión
+  if (url.pathname === "/Contador-mus/" || url.pathname.endsWith("/index.html")) {
+    event.respondWith(
+      fetch(req)
+        .then((res) => {
+          const copy = res.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
+          return res;
+        })
+        .catch(() => caches.match(req))
+    );
+    return;
+  }
+
+  // 2) RESTO: cache-first
   event.respondWith(
-    caches.match(event.request).then((cached) => cached || fetch(event.request))
+    caches.match(req).then((cached) => cached || fetch(req))
   );
 });
